@@ -1,0 +1,116 @@
+---
+
+- hosts: all
+  become: true
+  tasks: 
+
+  - name: Install Updates (Update)
+    apt:
+       upgrade: dist
+       update_cache: yes
+    when: ansible_distribution == "Ubuntu"
+
+  - name: Install chrony
+    apt:
+      name: chrony
+      state: latest
+      update_cache: yes
+    notify:
+       - Start chrony
+       - Enable chrony
+  handlers: 
+    - name: Start chrony
+      systemd:
+        name: chrony
+        state: started
+
+    - name: Enable chrony
+      systemd:
+        name: chrony
+        enabled: yes
+
+- hosts: all
+  become: true
+  tasks:
+
+  - name: Install openstack
+    apt:
+      name:
+        - nova-compute
+        - python3-openstackclient
+      state: latest
+      update_cache: yes
+    when: ansible_distribution == "Ubuntu"
+
+  - name: Install SQL database
+    apt: 
+      name:
+        - mariadb-server
+        - python3-pymysql
+      state: latest
+      update_cache: yes
+    when: ansible_distribution == "Ubuntu"
+
+  - name: Edit the mariadb conf file
+    copy: 
+      content: |
+        default-storage-engine = innodb
+        innodb_file_per_table = on
+        max_connections = 4096
+        collation-server = utf_general_ci
+        character-set-server = utf8
+      dest: /etc/mysql/mariadb.conf.d/99-openstack.cnf
+      mode: "0755"
+
+  - name: Enable mariadb
+    systemd:
+       name: mariadb
+       enabled: yes 
+
+  - name: Restart mariadb
+    systemd:
+      name: mariadb
+      state: restarted   
+  
+  - name: Install Message queue
+    apt:
+      name: rabbitmq-server
+      state: latest
+      update_cache: yes
+    when: ansible_distribution == "Ubuntu"
+  
+  - name: Install Memcached
+    apt: 
+      name: 
+        - memcached
+        - python3-memcache
+      state: latest
+      update_cache: yes
+    when: ansible_distribution == "Ubuntu"
+
+  - name: Restart memcached
+    systemd:
+      name: memcached
+      state: restarted
+
+  - name: Install etcd
+    apt:
+      name: etcd
+      state: latest
+      update_cache: yes
+    when: ansible_distribution == "Ubuntu"
+
+  - name: Enable etcd
+    systemd:
+      name: etcd
+      enabled: yes
+
+  #- name: Restart etcd
+    #systemcd: 
+     # name: etcd
+      #state: restarted
+
+  
+
+      
+      
